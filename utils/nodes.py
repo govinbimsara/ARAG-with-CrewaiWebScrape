@@ -2,6 +2,7 @@ from functools import lru_cache
 from utils.tools import tools
 from langgraph.prebuilt import ToolNode, tools_condition
 from langchain_groq import ChatGroq
+from langchain_core.runnables import RunnableLambda
 from langchain_core.prompts import ChatPromptTemplate, PromptTemplate
 from langchain_core.pydantic_v1 import BaseModel, Field
 from typing import Literal
@@ -110,10 +111,15 @@ def agent(state, config):
     messages = state["messages"]
     # question = messages[0].content
     # question, docs = extract_latest_messages(messages)
+    # prompt = PromptTemplate.from_template(
+    #     "You are an assistant to greet customers for general greetings and tool calling. {messages}"
+    # )
 
-    model = ChatGroq(model=os.getenv("LLM_MODEL", "llama-3.1-8b-instant"), api_key=groq_api_key)
+    model = ChatGroq(model=os.getenv("LLM_MODEL", "gemma2-9b-it"), api_key=groq_api_key)
 
     model_with_tools = model.bind_tools(tools)
+
+    # chain = prompt | model_with_tools 
     response = model_with_tools.invoke(messages)
     return {"messages":messages + [response]}
 
@@ -148,7 +154,7 @@ def rewrite(state, config):
     model = ChatGroq(model=os.getenv("LLM_MODEL", "llama3-70b-8192"), api_key=groq_api_key, streaming=True)
     
     response = model.invoke(msg)
-    return {"messages":messages + [HumanMessage(content=response)]}
+    return {"messages":messages + [response]}
 
 
 def generate(state, config):
@@ -171,7 +177,7 @@ def generate(state, config):
     model = ChatGroq(model=os.getenv("LLM_MODEL", "llama-3.1-8b-instant"), api_key=groq_api_key)
 
     generate_prompt = PromptTemplate(
-        template="""You are a customer service assistant for 'Genie Business' called 'Ashen' for question-answering tasks. \n
+        template="""You are a customer service assistant for 'Genie Business' for question-answering tasks. \n
         You are always giving answers to a merchant who is looking to get information. \n
         Use the following pieces of retrieved context to answer the question. \n
         If you don't know the answer, just say that you don't know. \n
